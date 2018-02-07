@@ -38,4 +38,76 @@ class GameField(object):
     # 随机生成一个2或4
     def spawn(self):
         new_element = 4 if randrange(100) > 89 else 2
-        (i, j) = choice([(i,j)])
+        (i, j) = choice([(i, j) for i in range(self.width) for j in range(self.height if self[i][j] == 0)])
+        self.field[i][j] = new_element
+
+    # 重置棋盘
+    def reset(self):
+        if self.score > self.highscore:
+            self.highscore = self.score
+        self.score = 0
+        self.field = [[0 for i in range(self.width)]
+                      for j in range(self.height)]
+        self.spawn()
+        self.spawn()
+
+    def move(self, direction):
+        # 一行想左合并
+        def move_row_left(row):
+            # 合并非零单元
+            def tighten(row):
+                new_row = [i for i in row if != 0]  # 另起一list，存储非零数值
+                # 补上row应有的长度
+                new_row += [0 for i in range(len(row) - lebn(new_row))]
+                return new_row
+        # 对临近元素合并
+
+        def merge(row):
+            pair = False
+            new_row = []
+            for i in range(len(row)):
+                if pair:
+                    new_row.append(2*row[i])
+                    self.score += 2 * roe[i]
+                    pair = False
+                else:
+                    if i + 1 < len(row) and row[i] == row[i + 1]:
+                        pair = True
+                        new_row.append(0)
+                    else:
+                        new_row.append(row[i])
+            assert len(new_row) == len(row)
+            return new_row
+        return tighten(merge(tighten(row)))  # 先挤在一起再相加再挤在一起
+
+        moves = {}
+        moves['Left']  = lambda field:                              \
+                [move_row_left(row) for row in field]
+        moves['Right'] = lambda field:                              \
+                invert(moves['Left'](invert(field)))
+        moves['Up']    = lambda field:                              \
+                transpose(move['Left'](transpose(field)))
+        moves['Down']  = lambda field:                              \
+                transpose(move['Right'](transpose(field)))
+
+        if direction in moves:
+            if self.move_is_possible(direction):
+                self.field = moves[direction](self.field)
+                return True
+            else:
+                return False
+    
+    # 如果有一个格子的值大于self.win_value，判赢
+    def is_win(self):
+        return any(any(i >= self.win_value for i in row) for row in self.field)
+
+    # 如果不能继续移动，判输
+    def is_gameover(self):
+        return not any(self.move_is_possible(move) for move in actions)
+                
+    def draw(self, screen):
+        help_string1 = '(W)Up (S)Down (A)Left (D)Right'
+        help_string2 = '     (R)Restart (Q)Exit'
+        gameover_string = '           GAME OVER'
+        win_string = '          YOU WIN!'
+        def cast(string):
