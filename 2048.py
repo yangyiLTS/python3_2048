@@ -81,14 +81,14 @@ class GameField(object):
         return tighten(merge(tighten(row)))  # 先挤在一起再相加再挤在一起
 
         moves = {}
-        moves['Left']  = lambda field:                              \
-                [move_row_left(row) for row in field]
+        moves['Left'] = lambda field:                              \
+            [move_row_left(row) for row in field]
         moves['Right'] = lambda field:                              \
-                invert(moves['Left'](invert(field)))
-        moves['Up']    = lambda field:                              \
-                transpose(move['Left'](transpose(field)))
-        moves['Down']  = lambda field:                              \
-                transpose(move['Right'](transpose(field)))
+            invert(moves['Left'](invert(field)))
+        moves['Up'] = lambda field:                              \
+            transpose(move['Left'](transpose(field)))
+        moves['Down'] = lambda field:                              \
+            transpose(move['Right'](transpose(field)))
 
         if direction in moves:
             if self.move_is_possible(direction):
@@ -96,7 +96,7 @@ class GameField(object):
                 return True
             else:
                 return False
-    
+
     # 如果有一个格子的值大于self.win_value，判赢
     def is_win(self):
         return any(any(i >= self.win_value for i in row) for row in self.field)
@@ -104,10 +104,71 @@ class GameField(object):
     # 如果不能继续移动，判输
     def is_gameover(self):
         return not any(self.move_is_possible(move) for move in actions)
-                
+
     def draw(self, screen):
         help_string1 = '(W)Up (S)Down (A)Left (D)Right'
         help_string2 = '     (R)Restart (Q)Exit'
         gameover_string = '           GAME OVER'
         win_string = '          YOU WIN!'
+
         def cast(string):
+            screen.addstr(string + '\n')
+
+        def draw_hor_separator():
+            line = '+' + ('+------' * self.width + '+')[1:]
+            separator = defaultdict(lambda: line)
+            if not hasattr(draw_hor_separator, "counter"):
+                draw_hor_separator.counter = 0
+            cast(separator[draw_hor_separator.counter])
+            draw_hor_separator.counter += 1
+
+        def draw_row(row):
+            cast(''.join('|{: ^5} '.format(num) if num > 0 else '|      ' for num in row) + '|')
+
+        screen.clear()
+        cast('SCORE: ' + str(self.score))
+        if 0 != self.highscore:
+            case('HIGHSCORE: ' + str(self.highscore))
+        for row in self.field:
+            draw_hor_separator()
+            draw_row(row)
+        draw_hor_separator()
+        if self.is_win():
+            cast(win_string)
+        else:
+            if self.is_gameover():
+                cast(gameover_string)
+            else:
+                cast(help_string1)
+        cast(help_string2)
+
+    def move_is_possible(self, direction):
+        def row_is_left_movable(row):
+            # 检查是否可以移动或合并
+            def change(i):
+                if row[i] == 0 and row[i] != 0:
+                    return True
+                if row[i] != 0 and row[i] == row[i + 1]:
+                    return True
+                return False
+            
+            return any(change(i) for i in range(len(row) - 1))
+
+        check = {}
+        check['Left'] = lambda field:                               \
+                any(row_is_left_movable(row) for row in field)
+        check['Right'] = lambda field:                              \
+                 check['Left'](invert(field))
+
+        check['Up']    = lambda field:                              \
+                check['Left'](transpose(field))
+
+        check['Down']  = lambda field:                              \
+                check['Right'](transpose(field))
+
+        if direction in check:
+            return check[direction](self.field)
+        else:
+            return False
+
+    
