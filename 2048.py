@@ -10,11 +10,11 @@ actions = ['Up', 'Left', 'Down', 'Right', 'Restart', 'Exit']
 
 actions_dict = dict(zip(letter_codes, actions * 2))
 
-
+# 矩阵转置
 def transpose(field):
     return [list(row) for row in zip(*field)]
 
-
+# 矩阵逆转
 def invert(field):
     return [row[::-1] for row in field]
 
@@ -48,11 +48,11 @@ class GameField(object):
         self.score = 0
         self.field = [[0 for i in range(self.width)]
                       for j in range(self.height)]
-        self.spawn()
+        self.spawn() # 生成两个数字
         self.spawn()
 
     def move(self, direction):
-        # 一行想左合并
+        # 一行向左合并
         def move_row_left(row):
             # 合并非零单元
             def tighten(row):
@@ -81,13 +81,17 @@ class GameField(object):
             return tighten(merge(tighten(row)))  # 先挤在一起再相加再挤在一起
 
         moves = {}
-        moves['Left'] = lambda field:                              \
+        # 向左移动
+        moves['Left'] = lambda field:                               \
             [move_row_left(row) for row in field]
+        # 右移->矩阵逆置再左移
         moves['Right'] = lambda field:                              \
             invert(moves['Left'](invert(field)))
-        moves['Up'] = lambda field:                              \
+        # 上移->矩阵转置在左移
+        moves['Up'] = lambda field:                                 \
             transpose(moves['Left'](transpose(field)))
-        moves['Down'] = lambda field:                              \
+        # 下移->矩阵转置再右移
+        moves['Down'] = lambda field:                               \
             transpose(move['Right'](transpose(field)))
 
         if direction in moves:
@@ -104,7 +108,7 @@ class GameField(object):
 
     # 如果不能继续移动，判输
     def is_gameover(self):
-        return not any(self.move_is_possible(move) for move in actions)
+        return not any(self.move_is_possible(move) for move in actions) 
 
     def draw(self, screen):
         help_string1 = '(W)Up (S)Down (A)Left (D)Right'
@@ -112,9 +116,11 @@ class GameField(object):
         gameover_string = '           GAME OVER'
         win_string = '          YOU WIN!'
 
+        # 在屏幕上输出一行
         def cast(string):
             screen.addstr(string + '\n')
 
+        # 打印行与行之间的分隔线
         def draw_hor_separator():
             line = '+' + ('+------' * self.width + '+')[1:]
             separator = defaultdict(lambda: line)
@@ -123,6 +129,7 @@ class GameField(object):
             cast(separator[draw_hor_separator.counter])
             draw_hor_separator.counter += 1
 
+        # 打印数字和分隔符
         def draw_row(row):
             cast(''.join('|{: ^5} '.format(num) if num > 0 else '|      ' for num in row) + '|')
 
@@ -131,6 +138,7 @@ class GameField(object):
         if 0 != self.highscore:
             case('HIGHSCORE: ' + str(self.highscore))
         for row in self.field:
+            # 打印每一行数字
             draw_hor_separator()
             draw_row(row)
         draw_hor_separator()
@@ -145,8 +153,9 @@ class GameField(object):
 
     def move_is_possible(self, direction):
         def row_is_left_movable(row):
-            # 检查是否可以移动或合并
+            # 检查是否可以向左移动或合并
             def change(i):
+                # 当连续两个相等时 或值为零的格子后面有一个非零格子 返回True
                 if row[i] == 0 and row[i + 1] != 0:
                     return True
                 if row[i] != 0 and row[i + 1] == row[i]:
@@ -154,7 +163,7 @@ class GameField(object):
                 return False
             
             return any(change(i) for i in range(len(row) - 1))
-
+        # 使用row_is_left_movable函数检查是否可以移动，与moves相似
         check = {}
         check['Left'] = lambda field:                               \
                 any(row_is_left_movable(row) for row in field)
